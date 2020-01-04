@@ -1,0 +1,1464 @@
+Option Explicit
+Option Compare Text
+
+Sub vente1()
+    Dim wb As Workbook, wbKepler As Workbook
+    Dim pf As Worksheet, av As Worksheet, newpf As Worksheet, tarif As Worksheet
+    Dim dataKepler As Worksheet, data As Worksheet, cash As Worksheet
+    Dim deb As Integer, finA As Integer, finV As Integer, quantI As Double
+    Dim quant As Double, finCash As Integer
+    Dim isin As String, pays As String, prod As String
+    Dim fraisPlace As Double, tarifPayePB As Double, tarifPayeC As Double
+    Dim payeC As Double, payePB As Double, totalPayeC As Double, t2 As Double, t1 As Double, totalPayePB As Double
+    Dim Montant As Double, totalMontant As Variant
+    Dim i As Integer, j As Integer, k As Integer, l As Integer
+    Dim nbNewPf As Integer
+    
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("Pf Act")
+    Set tarif = wb.Sheets("Grille Tarifaire")
+    Set data = wb.Sheets("Base OPC")
+    Set newpf = wb.Sheets(Sheets.Count - 1)
+    Set av = wb.Sheets("Tarif")
+    
+    Application.AskToUpdateLinks = False
+    Application.DisplayAlerts = False
+    
+    Set wbKepler = Workbooks.Open("S:\02167\Pôle Bourse\Univers et Portefeuille Témoin\Univers de gestion\Valeurs\Liste de recommandations Kepler\Liste recommandations Kepler.xlsx")
+    Set dataKepler = wbKepler.Sheets("Synthèse")
+    
+    pf.Activate
+    deb = Application.Match("Ventes", pf.Columns(2), 0) + 1
+    finV = pf.Cells(deb, 2).End(xlDown).Row
+    If finV = deb + 11 Then
+        Exit Sub
+    End If
+    
+
+    quant = 0
+    Montant = 0
+    fraisPlace = 8
+    totalPayePB = 0
+    totalPayeC = 0
+    totalMontant = 0
+    
+    For i = deb + 1 To finV
+        isin = ""
+        quant = 0
+        isin = pf.Cells(i, 2).Value
+        quant = pf.Cells(i, 5).Value
+        j = Application.Match(isin, pf.Columns(2), 0)
+        quantI = pf.Cells(j, 4).Value
+        prod = pf.Cells(j, 3).Value
+                
+        If isin = "EUR" Then
+            GoTo getoutForloop
+        End If
+            
+        If quant > quantI Then
+            'Error
+            MsgBox ("Peut pas faire cette opération, faute quantité sur " & prod & "  .Veuillez refaire cette opération.")
+            End
+
+        Else
+            Montant = quant * pf.Cells(i, 6).Value ' montant = qté * cours
+            '<--- Calcul des frais
+            On Error GoTo handler
+            l = Application.Match(isin, dataKepler.Columns(2), 0)
+            pays = dataKepler.Cells(l, 22).Value
+continue:
+            If pays = "France" Or pays = "france" Or pays = "fr" Then
+                tarifPayeC = tarif.Cells(20, 7).Value
+                tarifPayePB = tarif.Cells(20, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "Finland" Or pays = "finland" Or pays = "fi" Or pays = "Finlande" Then 'Frais de placement à 8€
+                tarifPayeC = tarif.Cells(21, 7).Value
+                tarifPayePB = tarif.Cells(21, 14).Value
+                payeC = Montant * tarifPayeC + fraisPlace
+                payePB = Montant * tarifPayePB + fraisPlace
+            ElseIf pays = "Spain" Or pays = "spain" Or pays = "es" Or pays = "Espagne" Then 'Frais de placement à 8€
+                tarifPayeC = tarif.Cells(22, 7).Value
+                tarifPayePB = tarif.Cells(22, 14).Value
+                payeC = Montant * tarifPayeC + fraisPlace
+                payePB = Montant * tarifPayePB + fraisPlace
+            ElseIf pays = "Belgium" Or pays = "belgium" Or pays = "be" Or pays = "Belgique" Then
+                tarifPayeC = tarif.Cells(23, 7).Value
+                tarifPayePB = tarif.Cells(23, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "Italy" Or pays = "italy" Or pays = "it" Or pays = "Italie" Then
+                tarifPayeC = tarif.Cells(24, 7).Value
+                tarifPayePB = tarif.Cells(24, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "Switzerland" Or pays = "switzerland" Or pays = "ch" Or pays = "Suisse" Then
+                tarifPayeC = tarif.Cells(25, 7).Value
+                tarifPayePB = tarif.Cells(25, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "Germany" Or pays = "germany" Or pays = "de" Or pays = "Allemagne" Then 'Frais de placement à 8€
+                tarifPayeC = tarif.Cells(26, 7).Value
+                tarifPayePB = tarif.Cells(26, 14).Value
+                payeC = Montant * tarifPayeC + fraisPlace
+                payePB = Montant * tarifPayePB + fraisPlace
+            ElseIf pays = "Netherlands" Or pays = "netherland" Or pays = "nl" Or pays = "Pays-Bas" Then
+                tarifPayeC = tarif.Cells(27, 7).Value
+                tarifPayePB = tarif.Cells(27, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "United States of America" Or pays = "us" Or pays = "Etat-Unis" Then 'Frais de placement à 8$, tdc = taux de change
+                tarifPayeC = tarif.Cells(28, 7).Value
+                tarifPayePB = tarif.Cells(28, 14).Value
+                payeC = Montant * tarifPayeC + fraisPlace ' (fraisPlace/tdc) pour change en valeur euro
+                payePB = Montant * tarifPayePB + fraisPlace ' (fraisPlace/tdc) pour change en valeur euro
+            ElseIf pays = "United Kingdom" Or pays = "gb" Or pays = "uk" Or pays = "Royaume-Uni" Then
+                tarifPayeC = tarif.Cells(29, 7).Value
+                tarifPayePB = tarif.Cells(29, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "OPC" Or pays = "opc" Then
+                tarifPayeC = tarif.Cells(30, 7).Value
+                tarifPayePB = tarif.Cells(30, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "ETF" Or pays = "etf" Then
+                tarifPayeC = tarif.Cells(31, 7).Value
+                tarifPayePB = tarif.Cells(31, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "Oblig" Or pays = "o" Then
+                tarifPayeC = tarif.Cells(32, 7).Value
+                tarifPayePB = tarif.Cells(32, 14).Value
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            ElseIf pays = "zero" Or pays = "0" Or pays = "" Then
+                tarifPayeC = 0
+                tarifPayePB = 0
+                payeC = 0
+                payePB = 0
+            Else
+                MsgBox "Pas trouvé ce pays sur le macro: " & pays & "; veuillez insérer le taux..."
+                t1 = Application.InputBox("Taux si client passe")
+                t2 = Application.Application.InputBox("Taux si pb passe")
+                tarifPayePB = t2
+                tarifPayeC = t1
+                payeC = Montant * tarifPayeC
+                payePB = Montant * tarifPayePB
+            End If
+            '<--- Entre dans les cellules de feuille tab
+            quantI = quantI - quant
+            nbNewPf = Application.Match(isin, newpf.Columns(2), 0)
+            newpf.Cells(nbNewPf, 4).Value = quantI
+            newpf.Cells(nbNewPf, 7).Value = newpf.Cells(nbNewPf, 7).Value - Montant
+          
+        End If
+        av.Cells(10 + i, 2).Value = payePB
+        totalPayeC = totalPayeC + payeC
+        totalPayePB = totalPayePB + payePB
+        totalMontant = totalMontant + Montant
+        
+    Next
+    
+getoutForloop:
+
+    av.Activate
+    av.Cells(6, 4).Value = 0
+    av.Cells(7, 4).Value = 0
+    av.Cells(8, 4).Value = 0
+    av.Cells(6, 4).Value = totalPayeC
+    av.Cells(7, 4).Value = totalPayePB
+    av.Cells(8, 4).Value = totalMontant
+
+    
+    wbKepler.Close SaveChanges:=False
+    Exit Sub
+
+error1:
+    'MsgBox "Pas trouvé ce produit: " & isin & "  " & prod & "  dans le fichier Kepler, veuillez rentrer l'origine du produit "
+    pays = InputBox("Entrer type d'actif ou pays" & isin & "  " & prod & Chr(13) & " etf, o (Oblig), opc, fr, fi(Finlande), es(Espagne), be(Belgique), it(Italie), ch(Suisse), de(Allemagne), nl(Pays-Bas), uk(Royaume-Uni) or us(Etats-Unis)? Met riens si taux zero")
+    GoTo continue
+handler:
+    Resume error1
+
+End Sub
+
+
+Sub achat1()
+
+    Dim wb As Workbook, wbKepler As Workbook
+    Dim pf As Worksheet, av As Worksheet, newpf As Worksheet, tarif As Worksheet, dataKepler As Worksheet, data As Worksheet
+    Dim deb As Integer, finA As Integer, quantI As Double, quant As Double, finCash As Integer, finPf As Integer, nbPf As Integer 'Nbligne, Qté, Montant
+    Dim isin As String, pays As String, codeAsset As String, prod As String
+    Dim fraisPlace, tarifPayePB, payePB, t1, t2, totalPayePB, montantPaye, totalMontant, cout, tarifPayeC, payeC, totalPayeC As Variant
+    Dim i As Integer, j As Integer, k As Integer, l As Integer, n As Integer, m As Integer, p As Integer
+    Dim s1 As Integer, s2 As Integer
+    Dim newId As Boolean
+    
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("Pf Act")
+    Set tarif = wb.Sheets("Grille Tarifaire")
+    Set newpf = wb.Sheets(Sheets.Count - 1)
+    Set av = wb.Sheets("Tarif")
+    Set data = wb.Sheets("Base OPC")
+    
+
+    Application.AskToUpdateLinks = False
+    Application.DisplayAlerts = False
+    Set wbKepler = Workbooks.Open("S:\02167\Pôle Bourse\Univers et Portefeuille Témoin\Univers de gestion\Valeurs\Liste de recommandations Kepler\Liste recommandations Kepler.xlsx")
+    Set dataKepler = wbKepler.Sheets("Synthèse")
+
+
+    
+    pf.Activate
+    deb = Application.Match("Achats", pf.Columns(11), 0) + 1
+    finA = pf.Cells(deb, 11).End(xlDown).Row
+    If finA = deb + 11 Then
+        Exit Sub
+    End If
+    
+    quant = 0
+    montantPaye = 0
+    fraisPlace = 8
+    totalPayePB = 0
+    totalMontant = 0
+            k = newpf.Cells(97, 5).Value
+            m = newpf.Cells(97, 7).Value
+            l = newpf.Cells(97, 6).Value
+            n = newpf.Cells(97, 8).Value
+            j = newpf.Cells(97, 4).Value
+            
+    For i = deb + 1 To finA
+
+        montantPaye = 0
+        tarifPayePB = 0
+        payePB = 0
+        tarifPayeC = 0
+        payeC = 0
+        isin = ""
+        pays = ""
+        quant = 0
+        s1 = 0
+        s2 = 0
+        isin = pf.Cells(i, 11).Value
+        quant = pf.Cells(i, 14).Value
+        cout = pf.Cells(i, 15).Value
+        montantPaye = pf.Cells(i, 16).Value
+        prod = pf.Cells(i, 12).Value
+        codeAsset = pf.Cells(i, 20).Value
+        
+        If isin = "EUR" Then
+        GoTo getoutForloop
+        End If
+        
+        If codeAsset = "Monétaire" Then
+            pays = "zero"
+            s1 = 6
+            s2 = k
+            GoTo continue
+
+        ElseIf codeAsset = "Obligataire" Then
+            pays = "Oblig"
+            s1 = 12
+            s2 = m
+            GoTo continue
+
+        ElseIf codeAsset = "Diversifié" Then
+            pays = "OPC"
+            s1 = 19
+            s2 = l
+            GoTo continue
+
+        ElseIf codeAsset = "ETF" Then
+            pays = "ETF"
+            s1 = 24
+            s2 = n
+            GoTo continue
+'        ElseIf codeAsset = "Hors Périmètre" Then
+'            pays = ""
+'            s1 = 24
+'            n = newpf.Cells(97, 8).Value
+'            s2 = n
+'            GoTo continue
+        Else
+        'Action
+             s1 = 33
+             s2 = j
+        End If
+
+        
+        '<--- Calcul des frais
+        On Error GoTo handler
+        l = Application.Match(isin, dataKepler.Columns(2), 0)
+        pays = dataKepler.Cells(l, 22).Value
+continue:
+            If pays = "France" Or pays = "france" Or pays = "fr" Then
+                tarifPayeC = tarif.Cells(3, 7).Value
+                tarifPayePB = tarif.Cells(3, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "Finland" Or pays = "finland" Or pays = "fi" Or pays = "Finlande" Then 'Frais de placement à 8€
+                tarifPayeC = tarif.Cells(4, 7).Value
+                tarifPayePB = tarif.Cells(4, 14).Value
+                payeC = montantPaye * tarifPayeC + fraisPlace
+                payePB = montantPaye * tarifPayePB + fraisPlace
+            ElseIf pays = "Spain" Or pays = "spain" Or pays = "es" Or pays = "Espagne" Then 'Frais de placement à 8€
+                tarifPayeC = tarif.Cells(5, 7).Value
+                tarifPayePB = tarif.Cells(5, 14).Value
+                payeC = montantPaye * tarifPayeC + fraisPlace
+                payePB = montantPaye * tarifPayePB + fraisPlace
+            ElseIf pays = "Belgium" Or pays = "belgium" Or pays = "be" Or pays = "Belgique" Then
+                tarifPayeC = tarif.Cells(6, 7).Value
+                tarifPayePB = tarif.Cells(6, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "Italy" Or pays = "italy" Or pays = "it" Or pays = "Italie" Then
+                tarifPayeC = tarif.Cells(7, 7).Value
+                tarifPayePB = tarif.Cells(7, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "Switzerland" Or pays = "switzerland" Or pays = "ch" Or pays = "Suisse" Then
+                tarifPayeC = tarif.Cells(8, 7).Value
+                tarifPayePB = tarif.Cells(8, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "Germany" Or pays = "germany" Or pays = "de" Or pays = "Allemagne" Then  'Frais de placement à 8€
+                tarifPayeC = tarif.Cells(9, 7).Value
+                tarifPayePB = tarif.Cells(9, 14).Value
+                payeC = montantPaye * tarifPayeC + fraisPlace
+                payePB = montantPaye * tarifPayePB + fraisPlace
+            ElseIf pays = "Netherlands" Or pays = "Pays-Bas" Then
+                tarifPayeC = tarif.Cells(10, 7).Value
+                tarifPayePB = tarif.Cells(10, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "United States of America" Or pays = "Etats-Unis" Or pays = "us" Then 'Frais de placement à 8$, tdc = taux de change
+                tarifPayeC = tarif.Cells(11, 7).Value
+                tarifPayePB = tarif.Cells(11, 14).Value
+                payeC = montantPaye * tarifPayeC + fraisPlace ' (fraisPlace/tdc) pour change en valeur euro
+                payePB = montantPaye * tarifPayePB + fraisPlace ' (fraisPlace/tdc) pour change en valeur euro
+            ElseIf pays = "United Kingdom" Or pays = "Royaume-Uni" Or pays = "uk" Then
+                tarifPayeC = tarif.Cells(12, 7).Value
+                tarifPayePB = tarif.Cells(12, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "OPC" Or pays = "opc" Then
+                tarifPayeC = tarif.Cells(13, 7).Value
+                tarifPayePB = tarif.Cells(13, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "ETF" Or pays = "etf" Then
+                tarifPayeC = tarif.Cells(14, 7).Value
+                tarifPayePB = tarif.Cells(14, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "Oblig" Or pays = "o" Then
+                tarifPayeC = tarif.Cells(15, 7).Value
+                tarifPayePB = tarif.Cells(15, 14).Value
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+            ElseIf pays = "zero" Or pays = "0" Or pays = "" Then
+                tarifPayeC = 0
+                tarifPayePB = 0
+                payeC = 0
+                payePB = 0
+            Else
+                MsgBox "Pas trouvé ce pays sur le macro: " & pays & "; veuillez insérer le taux..."
+                t1 = Application.InputBox("Taux si client passe")
+                t2 = Application.InputBox("Taux si pb passe")
+                tarifPayeC = t1
+                tarifPayePB = t2
+                payeC = montantPaye * tarifPayeC
+                payePB = montantPaye * tarifPayePB
+
+        End If
+        
+        '<--- Entre dans les cellules
+        'Check si l'isin existe déja
+
+        newId = True
+        If s1 = s2 Then
+            GoTo getout
+        End If
+
+        'Loop pour chercher si l'actif est déja dans le portefeuille avant l'arbitrage
+        For p = s1 To s2
+            If newpf.Cells(p, 2).Value = isin Then
+                newId = False
+                s2 = p
+                GoTo getout
+            End If
+        Next
+
+getout:
+        If newId = True Then
+            If codeAsset = "Monétaire" Then
+                nbPf = k
+                k = k + 1
+            ElseIf codeAsset = "Obligataire" Then
+                nbPf = m
+                m = m + 1
+            ElseIf codeAsset = "Diversifié" Then
+                nbPf = l
+                l = l + 1
+            ElseIf codeAsset = "ETF" Then
+                nbPf = n
+                n = n + 1
+    '        ElseIf codeAsset = "Hors Périmètre" Then
+            Else
+                nbPf = j
+                j = j + 1
+            End If
+            newpf.Cells(nbPf, 2).Value = isin
+            newpf.Cells(nbPf, 3).Value = prod
+            newpf.Cells(nbPf, 4).Value = quant
+            newpf.Cells(nbPf, 5).Value = cout
+            newpf.Cells(nbPf, 6).Value = cout
+            newpf.Cells(nbPf, 7).Value = 0
+            newpf.Cells(nbPf, 7).Value = newpf.Cells(nbPf, 7).Value + montantPaye
+            
+        Else
+            nbPf = s2
+            newpf.Cells(nbPf, 6).Value = cout
+            cout = (montantPaye + newpf.Cells(nbPf, 4).Value * newpf.Cells(nbPf, 5).Value) / (newpf.Cells(nbPf, 4).Value + quant)
+            newpf.Cells(nbPf, 4).Value = newpf.Cells(nbPf, 4).Value + quant
+            newpf.Cells(nbPf, 5).Value = cout
+            newpf.Cells(nbPf, 7).Value = newpf.Cells(nbPf, 7).Value + montantPaye
+        End If
+
+
+    av.Cells(10 + i, 3).Value = payePB
+    totalPayeC = totalPayeC + payeC
+    totalPayePB = totalPayePB + payePB
+    totalMontant = totalMontant + montantPaye
+    
+    Next
+getoutForloop:
+    av.Activate
+    av.Cells(6, 5).Value = 0
+    av.Cells(7, 5).Value = 0
+    av.Cells(8, 5).Value = 0
+    av.Cells(6, 5).Value = totalPayeC
+    av.Cells(7, 5).Value = totalPayePB
+    av.Cells(8, 5).Value = totalMontant
+    
+    
+    wbKepler.Close SaveChanges:=False
+    Exit Sub
+
+error1:
+    'MsgBox "Pas trouvé ce produit pour calculer tarif: " & isin & "  " & prod & "  dans le fichier Kepler, veuillez rentrer l'origine du produit "
+    pays = InputBox("Entrer type d'actif ou pays" & isin & "  " & prod & Chr(13) & " etf, o (Oblig), opc, fr, fi(Finlande), es(Espagne), be(Belgique), it(Italie), ch(Suisse), de(Allemagne), nl(Pays-Bas), uk(Royaume-Uni) or us(Etats-Unis)? Met riens si taux zero")
+    GoTo continue
+handler:
+    Resume error1
+
+End Sub
+Sub clearAv()
+    Dim av As Worksheet, sheet1 As Worksheet, sheet2 As Worksheet
+    Set av = ThisWorkbook.Sheets("Tarif")
+    Set sheet1 = ThisWorkbook.Sheets(Sheets.Count - 1)
+    sheet1.Copy ThisWorkbook.Sheets(Sheets.Count - 1)
+    
+    av.Activate
+    av.Cells(6, 4).Value = 0
+    av.Cells(7, 4).Value = 0
+    av.Cells(8, 4).Value = 0
+    av.Cells(6, 5).Value = 0
+    av.Cells(7, 5).Value = 0
+    av.Cells(8, 5).Value = 0
+    With av
+        av.Range(Cells(17, 1), Cells(Rows.Count, Columns.Count)).Select
+        Selection.Clear
+    End With
+    
+End Sub
+Sub copyColleNewPf()
+    
+    Dim wb As Workbook
+    Dim pf As Worksheet, newpf As Worksheet
+    Dim nbFinNewPf As Integer, nbFinPf As Integer
+    Dim rngNewPf As Range
+    
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("Pf Act")
+    Set newpf = wb.Sheets(Sheets.Count - 1)
+    
+    nbFinPf = Application.Match("ASV", pf.Columns(21), 0) + 2
+    nbFinNewPf = Application.Match("Ventes", newpf.Columns(2), 0)
+    nbFinNewPf = newpf.Cells(nbFinNewPf, "B").End(xlUp).Row
+    
+    With newpf
+    Set rngNewPf = Range(Cells(3, 2), Cells(nbFinNewPf, 16))
+    End With
+    
+    rngNewPf.Copy
+    
+    pf.Activate
+    With pf
+    Cells(nbFinPf, 21).PasteSpecial Paste:=xlPasteFormats
+    Cells(nbFinPf, 21).PasteSpecial Paste:=xlPasteValues
+    Cells(nbFinPf, 21).PasteSpecial Paste:=xlPasteFormulas
+    End With
+    
+End Sub
+
+Sub Arbitrage1()
+
+    Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
+    Application.Calculation = xlManual
+    
+    Call clearAv
+    Call vente1
+    Call achat1
+    
+    '####
+    'Supprime
+    '###
+    
+    Dim wb As Workbook
+    Dim pf As Worksheet, newpf As Worksheet, av As Worksheet
+    Dim i As Integer
+    Dim j As Integer, k As Integer, l As Integer, m As Integer, n As Integer, o As Integer, nbFinNewPf
+    Dim cashNew As Long
+    
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("Pf Act")
+    Set newpf = wb.Sheets(Sheets.Count - 1)
+    Set av = wb.Sheets("Tarif")
+    
+    newpf.Activate
+    
+    o = newpf.Range("B85:B93").Cells.SpecialCells(xlCellTypeConstants).Count - 1
+    j = newpf.Range("B32:B82").Cells.SpecialCells(xlCellTypeConstants).Count - 1
+    n = newpf.Range("B23:B31").Cells.SpecialCells(xlCellTypeConstants).Count - 1
+    l = newpf.Range("B17:B22").Cells.SpecialCells(xlCellTypeConstants).Count - 1
+    m = newpf.Range("B11:B16").Cells.SpecialCells(xlCellTypeConstants).Count - 1
+    k = newpf.Range("B5:B10").Cells.SpecialCells(xlCellTypeConstants).Count - 1
+    'supprime hors périmètre
+    If o = 0 Then
+        For i = 94 To 84 Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    Else
+        For i = 93 To 86 + o Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    End If
+    
+        'supprime poche action
+    If j = 0 Then
+        For i = 82 To 32 Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    Else
+        For i = 82 To 33 + j Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    End If
+    
+        'supprime poche ETF
+    If n = 0 Then
+        For i = 31 To 23 Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    Else
+        For i = 31 To 24 + n Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    End If
+    
+        'supprime poche Diversifié
+    If l = 0 Then
+        For i = 22 To 17 Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    Else
+        For i = 22 To 18 + l Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    End If
+    
+        'supprime poche Obligataire
+    If m = 0 Then
+        For i = 16 To 11 Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    Else
+        For i = 16 To 12 + m Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    End If
+    
+        'supprime poche Monétaire
+    If k = 0 Then
+        For i = 10 To 5 Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    Else
+        For i = 10 To 6 + k Step -1
+            newpf.Cells(i, 1).EntireRow.Delete
+        Next i
+    End If
+
+
+        'supprime ligne quantité = 0
+    nbFinNewPf = Application.Match("Ventes", newpf.Columns(2), 0)
+    nbFinNewPf = newpf.Cells(nbFinNewPf, "B").End(xlUp).Row
+
+    For i = nbFinNewPf To 4 Step -1
+        If newpf.Cells(i, 4).Value = "" Then
+            '
+        ElseIf newpf.Cells(i, 4).Value = 0 Then
+            newpf.Cells(i, 1).EntireRow.Delete
+        End If
+    Next
+    '####
+    ''Calcul de liquidité
+    '###
+    
+    cashNew = newpf.Cells(4, 7).Value + av.Cells(8, 4).Value - av.Cells(8, 5).Value - av.Cells(7, 4).Value - av.Cells(7, 5).Value
+    newpf.Cells(4, 7).Value = cashNew
+    
+    Call copyColleNewPf
+    
+    Application.DisplayAlerts = False
+    newpf.Delete
+    wb.Sheets(Sheets.Count - 1).Visible = False
+    
+    Application.DisplayAlerts = True
+    Application.ScreenUpdating = True
+    Application.Calculation = xlAutomatic
+    Application.AskToUpdateLinks = True
+    
+End Sub
+
+Option Explicit
+
+Dim wb As Workbook
+Dim iden As Worksheet, pf As Worksheet, pitch As Worksheet
+Dim excelPath As String, pdfPath As String, pdfFVPatch As String
+Dim nomClient As String, numContrat As String, mailClient As String, civClient As String, nomConseiller As String, nomCGP As String
+Dim isin As String, nomActif As String
+Dim texteMail As String, Jour As String
+Dim errorString As String
+Dim i As Integer
+Dim ObjOutlook As New Outlook.Application
+Dim oBjMail
+
+Public Function DossierExiste(MonDossier As String)
+'Vive Kiki29
+
+   If Len(Dir(MonDossier)) > 0 Then
+      DossierExiste = True
+   Else
+      DossierExiste = False
+
+   End If
+End Function
+'
+Sub initMail()
+
+    Jour = Format(Date, "ddmmyy")
+    Set wb = ThisWorkbook
+    Set iden = wb.Sheets("Identité")
+    Set pitch = wb.Sheets("Pitch")
+    Set pf = wb.Sheets("PF Act")
+
+    'wrdDoc.SaveAs2 ("S:\02167\Pôle Bourse\Clients POLE BOURSE\DocTest.docx")
+    On Error Resume Next
+    
+    civClient = iden.Cells(4, 3).Value
+    nomClient = iden.Cells(5, 3).Value
+    mailClient = iden.Cells(7, 3).Value
+    numContrat = iden.Cells(8, 3).Value
+    nomConseiller = iden.Cells(18, 3).Value
+    nomCGP = iden.Cells(22, 3).Value
+    excelPath = ThisWorkbook.Path
+    pdfPath = excelPath & "\" & "Dossier client - " & nomClient & " - PEA " & numContrat & " - " & Jour & ".pdf"
+    
+    Set ObjOutlook = New Outlook.Application
+    Set oBjMail = ObjOutlook.CreateItem(olMailItem)
+    
+End Sub
+
+Sub mailPb()
+    
+    Call initMail
+    Dim nbAchat As Integer
+    
+    texteMail = mailClient & vbCrLf & nomCGP & vbCrLf & civClient & " " & nomClient & "," & vbLf & vbLf & "En vue de notre point de gestion prévu demain à 13h30, je vous prie de bien vouloir trouver ci-joint ma proposition d'arbitrages ainsi que des fiches supports à l'achat." _
+    & vbCrLf & "Je reste à votre disposition pour tous renseignements complémentaires," & vbCrLf & vbCrLf & "Bien cordialement,"
+    
+    pdfPath = excelPath & "\" & "Dossier client - " & nomClient & " - PEA " & numContrat & " - " & Jour & ".pdf"
+    
+    On Error Resume Next
+    nbAchat = 0
+    errorString = " Pas de Fiche Valeur pour: "
+    For i = 1 To 10
+        If pitch.Cells(17 + i, 3).Value = "" Then
+            Exit For
+        Else
+            nbAchat = nbAchat + 1
+        End If
+    Next i
+
+    If nbAchat = 0 Then
+        GoTo pasAchat
+    Else
+        For i = 1 To nbAchat
+            isin = pitch.Cells(i + 17, 3).Value
+            nomActif = pitch.Cells(i + 17, 4).Value
+            pdfFVPatch = "S:\02167\Pôle Bourse\Univers et Portefeuille Témoin\Univers de gestion\Valeurs\Modèles Valorisation & Fiches Valeur\Fiche Valeur Consolide" & "\" & isin & " - " & nomActif & ".pdf"
+            oBjMail.Attachments.Add pdfFVPatch
+            If DossierExiste(pdfFVPatch) = False Then
+                errorString = errorString & " " & nomActif
+            End If
+        Next i
+    End If
+
+pasAchat:
+    With oBjMail
+           .Attachments.Add (pdfPath)
+           '.To = Adresse
+           .Subject = "Pôle Bourse - Simulation d'arbitrages - " & nomClient
+           .Body = texteMail
+           .Display
+    End With
+    
+    'TODO: attache les fiches valeurs
+    Set oBjMail = Nothing
+    Set ObjOutlook = Nothing
+    MsgBox (errorString)
+End Sub
+
+
+Option Explicit
+Option Compare Text
+
+Sub testimportexport()
+
+    'MAJ la base OPC
+    Call majBaseOpc
+
+Dim wb As Workbook
+Dim data As Worksheet, pf As Worksheet, extrac As Worksheet, newDataOpc As Worksheet, pt As Worksheet
+Dim nbLigne As Integer, i As Integer, j As Integer, k As Integer, l As Integer, m As Integer, n As Integer, o As Integer, p As Integer
+Dim nbHp As Integer
+Dim nbBase As Integer
+Dim codeAsset As String, isin As String, prod As String
+Dim newId As Boolean
+Dim x As Long
+
+Set wb = ThisWorkbook
+Set data = wb.Sheets("Base OPC")
+Set pf = wb.Sheets("PF Act")
+Set extrac = wb.Sheets("Extraction")
+Set newDataOpc = wb.Sheets("NewDataOPC")
+Set pt = wb.Sheets("Pas Touche")
+p = 2
+j = 33 'Action
+k = 6 'Monétaire
+l = 18 'Diversifié
+m = 12 'Obligataire
+n = 24 'ETF
+o = 86 ' Hors périmètre
+    
+    
+    Application.ScreenUpdating = False
+    Application.Calculation = xlManual
+
+    Application.AskToUpdateLinks = False
+    Application.DisplayAlerts = False
+
+
+    On Error Resume Next
+        wb.Sheets("PF Act (2)").Delete
+        wb.Sheets("Pf Act (3)").Delete
+        wb.Sheets("Pf Act (4)").Delete
+        wb.Sheets("Pf Act (5)").Delete
+        wb.Sheets("Pf Act (6)").Delete
+        wb.Sheets("Pf Act (7)").Delete
+        wb.Sheets("Pf Act (8)").Delete
+        wb.Sheets("Pf Act (9)").Delete
+        wb.Sheets("Pf Act (10)").Delete
+    On Error GoTo 0
+    
+'Efface tout
+    pf.Activate
+    Columns("A:BB").Select
+    Application.CutCopyMode = False
+    Selection.Clear
+'remets tout
+    pt.Visible = True
+    pt.Activate
+    Columns("A:BB").Select
+    Selection.Copy
+    pf.Activate
+    Columns("A:BB").Select
+    ActiveSheet.Paste
+    pt.Visible = False
+
+
+extrac.Activate
+If extrac.Cells(3, 1).Value = "" Then
+    GoTo cashonly
+End If
+nbLigne = Worksheets("Extraction").Range("a2").End(xlDown).Row
+
+
+'Traiter l'extraction
+    'Check hors périf , puis mettre 1 et 2
+
+
+For i = 2 To nbLigne
+    If extrac.Cells(i, 10).Value = "Hors périmètre" Then
+        extrac.Cells(i, 12).Value = 2
+        If extrac.Cells(i, 3).Value = extrac.Cells(i - 1, 3).Value Then
+            extrac.Cells(i - 1, 12).Value = 1
+        ElseIf extrac.Cells(i, 3).Value = extrac.Cells(i + 1, 3).Value Then
+            extrac.Cells(i + 1, 12).Value = 1
+        End If
+    End If
+    
+    'Check fond Euro
+    If extrac.Cells(i, 3).Value = "FR120F" Then
+        extrac.Cells(i, 3).Value = "EUR"
+    End If
+    
+    'Check Prix d'achat, si vide -> = 0
+    If extrac.Cells(i, 15).Value = "" Then
+        extrac.Cells(i, 15).Value = 0
+    End If
+    
+Next i
+
+For i = 2 To nbLigne
+    newId = False
+    isin = ""
+    Sheets("Extraction").Select
+    
+    If extrac.Cells(i, 3).Value = "EUR" Then
+    GoTo vasy
+    End If
+    
+    isin = Left(Range("C" & i), 12)
+    prod = extrac.Cells(i, 4).Value
+    
+    On Error GoTo handlerImp ' Si erreur go to handler
+
+    'Traiter hors périmètre
+    If extrac.Cells(i, 12).Value = 2 Then
+    GoTo vasy
+    End If
+    
+    If extrac.Cells(i, 12).Value = 1 Then
+    Sheets("PF Act").Range("B" & o).Value = isin
+    pf.Cells(o, 4).Value = extrac.Cells(i, 14).Value
+    pf.Cells(o, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value
+    pf.Cells(o, 7).Value = extrac.Cells(i, 16).Value
+    o = o + 1
+    GoTo vasy
+    End If
+    
+    nbBase = Application.Match(isin, data.Columns(2), 0)
+    If data.Cells(nbBase, 6).Value = "ETF" Then
+        codeAsset = "ETF"
+    ElseIf data.Cells(nbBase, 5).Value = "Actions" Or data.Cells(nbBase, 5).Value = "Actions protégées" Then
+        codeAsset = "Actions"
+    ElseIf data.Cells(nbBase, 5).Value = "Monétaire" Then
+        codeAsset = "Monétaire"
+    ElseIf data.Cells(nbBase, 5).Value = "Diversifié" Or data.Cells(nbBase, 5).Value = "Immobilier" Then
+        codeAsset = "Diversifié"
+    ElseIf data.Cells(nbBase, 5).Value = "Obligataire" Then
+        codeAsset = "Obligataire"
+    End If
+    
+
+okay:
+    If codeAsset = "ETF" Or codeAsset = "etf" Or codeAsset = "e" Then
+    Sheets("PF Act").Range("B" & n).Value = isin
+    pf.Cells(n, 4).Value = extrac.Cells(i, 14).Value
+    pf.Cells(n, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value
+    pf.Cells(n, 7).Value = extrac.Cells(i, 16).Value
+    n = n + 1
+    GoTo vasy
+    End If
+    
+    If codeAsset = "h" Then
+    Sheets("PF Act").Range("B" & o).Value = isin
+    pf.Cells(o, 4).Value = extrac.Cells(i, 14).Value
+    pf.Cells(o, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value
+    pf.Cells(o, 7).Value = extrac.Cells(i, 16).Value
+    o = o + 1
+    End If
+    
+    If codeAsset = "Actions" Or codeAsset = "a" Or codeAsset = "Actions protégées" Then
+    Sheets("PF Act").Range("B" & j).Value = isin
+    pf.Cells(j, 4).Value = extrac.Cells(i, 14).Value
+    pf.Cells(j, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value
+    pf.Cells(j, 7).Value = extrac.Cells(i, 16).Value
+    j = j + 1
+    End If
+
+    If codeAsset = "Monétaire" Or codeAsset = "m" Then
+    Sheets("PF Act").Range("B" & k).Value = isin
+    pf.Cells(k, 4).Value = extrac.Cells(i, 14).Value
+    pf.Cells(k, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value
+    pf.Cells(k, 7).Value = extrac.Cells(i, 16).Value
+    k = k + 1
+    End If
+
+    If codeAsset = "Diversifié" Or codeAsset = "d" Then
+    Sheets("PF Act").Range("B" & l).Value = isin
+    pf.Cells(l, 4).Value = extrac.Cells(i, 14).Value
+    pf.Cells(l, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value
+    pf.Cells(l, 7).Value = extrac.Cells(i, 16).Value
+    l = l + 1
+    End If
+
+    If codeAsset = "Obligataire" Or codeAsset = "o" Then
+    Sheets("PF Act").Range("B" & m).Value = isin
+    pf.Cells(m, 5).Value = extrac.Cells(i, 15).Value / extrac.Cells(i, 14).Value * 100
+    pf.Cells(m, 4).Value = extrac.Cells(i, 14).Value / 100
+    pf.Cells(m, 7).Value = extrac.Cells(i, 16).Value
+    m = m + 1
+    End If
+
+vasy:
+    If newId = True Then
+        newDataOpc.Cells(p, 2).Value = isin
+        newDataOpc.Cells(p, 3).Value = prod
+        newDataOpc.Cells(p, 5).Value = codeAsset
+        p = p + 1
+    End If
+
+Next i
+
+On Error GoTo 0
+
+'#############################
+'dupliquer pour traiter achat vente
+'#############################
+cashonly:
+pf.Copy wb.Sheets(Sheets.Count)
+'j = 33 'Action
+'k = 6 'Monétaire
+'l = 18 'Diversifié
+'m = 12 'Obligataire
+'n = 24 'ETF
+'o = 86 ' Hors périmètre
+wb.Sheets(Sheets.Count - 1).Cells(97, 4).Value = j
+wb.Sheets(Sheets.Count - 1).Cells(97, 5).Value = k
+wb.Sheets(Sheets.Count - 1).Cells(97, 6).Value = l
+wb.Sheets(Sheets.Count - 1).Cells(97, 7).Value = m
+wb.Sheets(Sheets.Count - 1).Cells(97, 8).Value = n
+wb.Sheets(Sheets.Count - 1).Cells(97, 9).Value = o
+
+'#############################
+'supprime hors périmètre
+'#############################
+pf.Activate
+    'supprime hors périmètre
+If pf.Cells(86, 4).Value = "" Then
+    For i = 94 To 84 Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+Else
+    For i = 93 To o Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+End If
+
+    'supprime poche action
+If pf.Cells(33, 4).Value = "" Then
+    For i = 82 To 32 Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+Else
+    For i = 82 To j Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+End If
+
+    'supprime poche ETF
+If pf.Cells(24, 4).Value = "" Then
+    For i = 31 To 23 Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+Else
+    For i = 31 To n Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+End If
+
+    'supprime poche Diversifié
+If pf.Cells(18, 4).Value = "" Then
+    For i = 22 To 17 Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+Else
+    For i = 22 To l Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+End If
+
+    'supprime poche Obligataire
+If pf.Cells(12, 4).Value = "" Then
+    For i = 16 To 11 Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+Else
+    For i = 16 To m Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+End If
+
+    'supprime poche Monétaire
+If pf.Cells(6, 4).Value = "" Then
+    For i = 10 To 5 Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+Else
+    For i = 10 To k Step -1
+        pf.Cells(i, 1).EntireRow.Delete
+    Next i
+End If
+'
+'    pf.Cells(1, 12).ColumnWidth = 45
+'    pf.Cells(1, 3).ColumnWidth = 45
+'Archiver
+j = 33 'Action
+k = 6 'Monétaire
+l = 18 'Diversifié
+m = 12 'Obligataire
+n = 24 'ETF
+o = 86 ' Hors périmètre
+    wb.Sheets(Sheets.Count - 1).Visible = False
+    wb.Sheets("Pas Touche").Visible = False
+    
+    
+    Application.AskToUpdateLinks = True
+    Application.DisplayAlerts = True
+    Application.ScreenUpdating = True
+    Application.Calculation = xlAutomatic
+    
+
+Exit Sub
+
+oke:
+    'MsgBox "Pas trouvé ce produit: " & isin & "  " & prod & "  dans la base de donnée, veuillez précisez son type d'actif"
+    codeAsset = InputBox("Entrer le type d'actif:  " & isin & "  " & prod & Chr(13) & " e (ETF), a (Actions), m (Monétaire), d (Diversifié), o (Obligataire), h (Hors d'arbitrage)")
+    newId = True
+    GoTo okay
+handlerImp:
+    Resume oke
+
+End Sub
+
+Sub majBaseOpc()
+    Dim wb As Workbook, wbCopy As Workbook
+    Dim copyBaseOpc As Worksheet, colleBaseOpc As Worksheet
+  
+    Application.AskToUpdateLinks = False
+    Application.DisplayAlerts = False
+    Application.ScreenUpdating = False
+    
+    Set wb = ThisWorkbook
+    Set colleBaseOpc = wb.Sheets("Base OPC")
+    colleBaseOpc.Activate
+    Cells.Select
+    Selection.Clear
+    
+
+    Set wbCopy = Workbooks.Open("S:\02167\Gestion Conseillée\Clients GC\Nouveaux clients attribués\Modèle suivi clients GC - ASV.xlsm")
+    Set copyBaseOpc = wbCopy.Sheets("Base OPC")
+    
+    copyBaseOpc.Activate
+    Cells.Select
+    Selection.Copy
+    
+    colleBaseOpc.Activate
+    Cells(1, 1).PasteSpecial Paste:=xlPasteAll
+    
+    wbCopy.Close SaveChanges:=False
+    
+    'Application.AskToUpdateLinks = True
+    'Application.DisplayAlerts = True
+    'Application.ScreenUpdating = True
+
+    
+End Sub
+
+Option Explicit
+
+Function pourcentageActionInitial()
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("FA", pf.Columns(2), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(2), 0) - 1
+    totalA = 0
+
+    
+    For i = deb To fin
+        If pf.Cells(i, 13).Value = "" Then
+        Else
+            totalA = totalA + pf.Cells(i, 8).Value
+        End If
+    Next i
+
+    pourcentageActionInitial = totalA
+
+End Function
+
+
+Function pourcentagePaysInitial(pays As String)
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("FA", pf.Columns(2), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(2), 0) - 1
+    totalA = 0
+
+    
+    For i = deb To fin
+        If pf.Cells(i, 13).Value = pays Then
+            totalA = totalA + pf.Cells(i, 8).Value
+        Else
+        End If
+    Next i
+
+    pourcentagePaysInitial = totalA
+
+End Function
+
+Function pourcentagePaysApres(pays As String)
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("FA", pf.Columns(21), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(21), 0) - 1
+    totalA = 0
+
+    
+    For i = deb To fin
+        If pf.Cells(i, 32).Value = pays Then
+            totalA = totalA + pf.Cells(i, 27).Value
+        Else
+        End If
+    Next i
+
+    pourcentagePaysApres = totalA
+
+End Function
+
+Function pourcentageCashApres()
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("EUR", pf.Columns(21), 0)
+    totalA = pf.Cells(deb, 27).Value
+    pourcentageCashApres = totalA
+
+End Function
+
+Function pourcentageSecteurInitial(secteur As String)
+    
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim abc As String
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("FA", pf.Columns(2), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(2), 0) - 1
+    totalA = 0
+
+    
+    For i = deb To fin
+        abc = pf.Cells(i, 12).Value
+        If pf.Cells(i, 12).Value = secteur Then
+            totalA = totalA + pf.Cells(i, 8).Value
+        Else
+        End If
+    Next i
+    
+    pourcentageSecteurInitial = totalA
+
+End Function
+
+Function pourcentageSecteurApres(secteur As String)
+    
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("FA", pf.Columns(21), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(21), 0) - 1
+    totalA = 0
+
+    
+    For i = deb To fin
+        If pf.Cells(i, 31).Value = secteur Then
+            totalA = totalA + pf.Cells(i, 27).Value
+        Else
+        End If
+    Next i
+
+    pourcentageSecteurApres = totalA
+
+End Function
+
+'Function prixBaseOpc(isin As String)
+'
+'    Application.Volatile
+'    Dim wb As Workbook
+'    Set wb = ThisWorkbook
+'    Set pf = wb.Sheets("PF Act")
+'
+'End Function
+
+
+Function pourcentageActionApres()
+    Application.Volatile
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Dim i As Integer
+    Dim deb As Integer, fin As Integer
+    Dim totalA As Double
+    deb = Application.Match("FA", pf.Columns(21), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(21), 0) - 1
+    totalA = 0
+
+    
+    For i = deb To fin
+        If pf.Cells(i, 32).Value = "" Then
+        Else
+            totalA = totalA + pf.Cells(i, 27).Value
+        End If
+    Next i
+
+    pourcentageActionApres = totalA
+
+End Function
+
+Function getRangeActionCol(i As Integer) As Range
+
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Dim rngAction As Range
+    Dim deb As Integer, fin As Integer
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    deb = Application.Match("FA", pf.Columns(2), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(2), 0) - 1
+    
+    With pf
+        Set rngAction = Range(pf.Cells(deb, i), pf.Cells(fin, i))
+    End With
+    
+    Set getRangeActionCol = rngAction
+    
+End Function
+
+Function getRangeAction() As Range
+
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Dim rngAction As Range
+    Dim deb As Integer, fin As Integer
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    deb = Application.Match("FA", pf.Columns(2), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(2), 0) - 1
+    
+    With pf
+        Set rngAction = Range(pf.Cells(deb, 2), pf.Cells(fin, 14))
+    End With
+    
+    Set getRangeAction = rngAction
+    
+End Function
+
+Function getRangeActionApresCol(i As Integer) As Range
+
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Dim rngAction As Range
+    Dim deb As Integer, fin As Integer
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    deb = Application.Match("FA", pf.Columns(21), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(21), 0) - 1
+    
+    With pf
+        Set rngAction = Range(pf.Cells(deb, i), pf.Cells(fin, i))
+    End With
+    
+    Set getRangeActionApresCol = rngAction
+    
+End Function
+
+Function getRangeActionApres() As Range
+
+    Dim wb As Workbook
+    Dim pf As Worksheet
+    Dim rngAction As Range
+    Dim deb As Integer, fin As Integer
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    deb = Application.Match("FA", pf.Columns(21), 0) + 1
+    fin = Application.Match("Total du Portefeuille Arbitrable", pf.Columns(21), 0) - 1
+    
+    With pf
+        Set rngAction = Range(pf.Cells(deb, 21), pf.Cells(fin, 33))
+    End With
+    
+    Set getRangeActionApres = rngAction
+    
+End Function
+
+Function getRangeSuivi(i As Integer) As Range
+
+    Dim wb As Workbook
+    Dim suivi As Worksheet
+    Dim rngSuivi As Range
+    Dim deb As Integer, fin As Integer
+    Set wb = ThisWorkbook
+    Set suivi = wb.Sheets("Suivi performance")
+    
+    deb = 27
+    fin = suivi.Cells(Rows.Count, 2).End(xlUp).Row
+
+    With suivi
+        Set rngSuivi = Range(suivi.Cells(deb, i), suivi.Cells(fin, i))
+    End With
+    
+    Set getRangeSuivi = rngSuivi
+    
+End Function
+
+Function getDernierDatePDG()
+
+    Dim wb As Workbook
+    Dim suivi As Worksheet
+    Dim datePDG As Date, dateToday As Date
+    Dim nbLigne As Integer
+    Set wb = ThisWorkbook
+    Set suivi = wb.Sheets("Suivi performance")
+    
+    nbLigne = suivi.Cells(Rows.Count, 2).End(xlUp).Row
+    dateToday = suivi.Cells(3, 3).Value
+    datePDG = suivi.Cells(nbLigne, 2).Value
+    
+    If datePDG = dateToday Then
+        datePDG = suivi.Cells(nbLigne - 1, 2).Value
+    ElseIf datePDG = dateToday - 1 Then
+        datePDG = suivi.Cells(nbLigne - 1, 2).Value
+    End If
+    
+    getDernierDatePDG = datePDG
+    
+End Function
+
+Sub copycolPfmodel()
+    
+    Application.ScreenUpdating = False
+    Application.Calculation = xlManual
+    Dim wb, wbPf As Workbook
+    Dim copyPf As Worksheet, pf As Worksheet
+    Dim pfType As String
+    Dim fin As Integer
+    Dim rng As Range
+    
+    Set wb = ThisWorkbook
+    Set pf = wb.Sheets("PF Act")
+    
+    Application.AskToUpdateLinks = False
+    Application.DisplayAlerts = False
+    
+    'Test type de contrat
+    pfType = pf.Cells(3, 3).Value
+    pfType = Left(pfType, 3)
+    
+    If pfType = "PEA" Then
+        Set wbPf = Workbooks.Open("S:\02167\Pôle Bourse\Univers et Portefeuille Témoin\Portefeuilles Modèles\Portefeuille Modèle PEA Actuel.xlsm")
+        Set copyPf = wbPf.Sheets("Selection DUR")
+    
+    ElseIf pfType = "CTO" Then
+        Set wbPf = Workbooks.Open("S:\02167\Pôle Bourse\Univers et Portefeuille Témoin\Portefeuilles Modèles\Portefeuille Modèle CTO Actuel.xlsm")
+        Set copyPf = wbPf.Sheets("Selection DUR")
+    
+    Else
+        MsgBox ("Veuillez définir type de contrat dans feuille ""Identité"" ligne 13")
+        Application.AskToUpdateLinks = True
+        Application.DisplayAlerts = True
+        Exit Sub
+    End If
+
+    copyPf.Activate
+    fin = copyPf.Cells(Rows.Count, "A").End(xlUp).Row + 2
+    
+    Set rng = copyPf.Range(Cells(1, 1), Cells(fin, 14))
+    Cells(fin, 1).Value = "ASV"
+    rng.Copy
+    
+    
+    pf.Activate
+    Cells(3, 21).PasteSpecial Paste:=xlPasteFormats
+    Cells(3, 21).PasteSpecial Paste:=xlPasteValues
+    Cells(3, 21).PasteSpecial Paste:=xlPasteFormulas
+    
+    pf.Columns(21).AutoFit
+    pf.Columns(22).AutoFit
+    
+    wbPf.Close SaveChanges:=False
+    Application.DisplayAlerts = True
+    Application.AskToUpdateLinks = True
+    Application.ScreenUpdating = True
+    Application.Calculation = xlAutomatic
+End Sub
+
+
